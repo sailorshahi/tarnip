@@ -1,2 +1,4 @@
-// Fill in from Supabase > Project Settings > API. The anon key is safe to expose; RLS protects data.
-window.TARNIP = { url: "https://YOUR-PROJECT.supabase.co", key: "YOUR-ANON-KEY" };
+window.TARNIP = {
+  url: "https://yfmhskwvyfwqvzgxobop.supabase.co",
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlmbWhza3d2eWZ3cXZ6Z3hvYm9wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2MzEwMjcsImV4cCI6MjExMDIwNzAyN30.b2LDZIqUZ3kUsyTSUHDcOL8HNQmpKLhUovZrRkUycd4"
+};
