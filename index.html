@@ -1,0 +1,40 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TARNIP</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script></head><body>
+<div id="app"></div>
+<script src="config.js"></script><script src="shared.js"></script>
+<script>
+let cart = JSON.parse(sessionStorage.getItem("cart") || "[]"), user, cats = [], prods = [];
+const save = () => sessionStorage.setItem("cart", JSON.stringify(cart));
+const shell = (body, banner) => `${banner ? `<div class="banner">${banner}</div>` : ""}<header><a class="logo" href="./">TARNIP</a><nav>${cats.map(c => `<a href="?c=${c.slug}">${esc(c.name)}</a>`).join("")}</nav><a href="account.html">${user ? "My products" : "Sign in"}</a>${user?.is_admin ? `<a href="admin.html">Admin</a>` : ""}<button class="alt" onclick="cartView()">Cart (${cart.length})</button></header><main>${body}</main>`;
+const card = p => `<div class="card"><small>${p.kind}</small><h3>${esc(p.name)}</h3><p>${esc(p.summary)}</p><span class="price">${p.price > 0 ? money(p.price) : "Price on request"}</span><div class="row"><a class="btn alt" href="?p=${p.slug}">Details</a><button onclick="add(${p.id})">Add to cart</button></div></div>`;
+function add(id) { if (!cart.includes(id)) cart.push(id); save(); render(); }
+function cartView() {
+  const items = cart.map(id => prods.find(p => p.id === id)).filter(Boolean), t = items.reduce((s, p) => s + Number(p.price), 0);
+  $("main").innerHTML = `<h2>Your cart</h2>${items.length ? `<table>${items.map(p => `<tr><td>${esc(p.name)}</td><td>${money(p.price)}</td><td><button class="alt" onclick="cart=cart.filter(i=>i!=${p.id});save();cartView()">Remove</button></td></tr>`).join("")}<tr><th>Total</th><th>${money(t)}</th><td></td></table><br><button onclick="checkout(${t})">Place order</button><p><small>Payment gateway is not connected yet. Orders are saved as pending and an admin approves them.</small></p>` : "<p>Your cart is empty. Browse a category above.</p>"}<div id="ab"></div>`;
+}
+async function checkout(t) {
+  if (!user) return authBox($("#ab"), () => location.reload());
+  const { data: o, error } = await sb.from("orders").insert({ user_id: user.id, total: t }).select().single();
+  if (error) return alert(error.message);
+  await sb.from("order_items").insert(cart.map(id => ({ order_id: o.id, product_id: id, price: prods.find(p => p.id === id).price })));
+  cart = []; save(); $("main").innerHTML = `<h2>Order #${o.id} placed</h2><p>We will confirm it soon. Once approved, your products appear under <a href="account.html">My products</a>.</p>`;
+}
+function render() {
+  const q = new URLSearchParams(location.search), c = cats.find(x => x.slug === q.get("c")), p = prods.find(x => x.slug === q.get("p"));
+  let body;
+  if (p) body = `<h1>${esc(p.name)}</h1><p>${esc(p.summary)}</p><div>${p.page_html || ""}</div><p class="price">${p.price > 0 ? money(p.price) : "Price on request"}</p><button onclick="add(${p.id})">Add to cart</button>`;
+  else if (c) body = `<h1>${esc(c.name)}</h1><div class="grid">${prods.filter(x => x.category_id === c.id).map(card).join("") || "<p>Products for this category are coming soon.</p>"}</div>`;
+  else body = `<h1>Hardware and software that work together</h1><p>Custom IoT devices with the apps to run them.</p>${["hardware", "software"].map(k => `<h2>${k === "hardware" ? "Hardware" : "Software"}</h2><div class="grid">${prods.filter(x => x.kind === k).map(card).join("") || "<p>Coming soon.</p>"}</div>`).join("")}`;
+  $("#app").innerHTML = shell(body, window.preview ? "Preview mode: visitors currently see the under-construction page." : "");
+}
+(async () => {
+  user = await me(); const s = await settings();
+  if (s.mode !== "live" && !user?.is_admin) {
+    $("#app").innerHTML = `<div class="stripe"></div><div class="build"><h1>TARNIP</h1><p>${esc(s.message || "Under construction.")}</p><p><a href="account.html">Sign in</a></p></div><div class="stripe"></div>`; return;
+  }
+  window.preview = s.mode !== "live";
+  cats = (await sb.from("categories").select("*").order("sort")).data || [];
+  prods = (await sb.from("products").select("*").eq("active", true).order("id")).data || [];
+  render();
+})();
+</script></body></html>

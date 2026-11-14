@@ -1,0 +1,22 @@
+:root{--ink:#1b1530;--violet:#5b2f91;--pale:#f3eef8;--amber:#e8a53a;--line:#d9cfe6;--bg:#fff}
+@media(prefers-color-scheme:dark){:root{--ink:#efe9f7;--violet:#b793ea;--pale:#241c38;--line:#3a2f55;--bg:#150f24}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 "Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+h1,h2,h3{font-family:Georgia,"Times New Roman",serif;line-height:1.15;letter-spacing:-.01em}
+header{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;padding:1rem 5vw;border-bottom:1px solid var(--line)}
+header .logo{font:700 1.5rem Georgia,serif;color:var(--violet);margin-right:auto;text-decoration:none}
+nav a,header a{color:var(--ink);text-decoration:none;margin-left:1rem}nav a:hover{color:var(--violet)}
+main{padding:2rem 5vw;max-width:1100px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1.25rem}
+.card{border:1px solid var(--line);padding:1.1rem;background:var(--pale);border-radius:4px;display:flex;flex-direction:column;gap:.4rem}
+.card h3{margin:.2rem 0}.price{font-weight:600;color:var(--violet)}
+button,.btn{background:var(--violet);color:#fff;border:0;padding:.6rem 1.1rem;font:inherit;cursor:pointer;border-radius:3px;text-decoration:none;display:inline-block}
+button.alt{background:transparent;color:var(--violet);border:1px solid var(--violet)}
+input,select,textarea{width:100%;padding:.55rem;font:inherit;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:3px;margin:.25rem 0 .8rem}
+label{display:block;font-size:.9rem}form{max-width:460px}.row{display:flex;gap:.6rem;flex-wrap:wrap}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid var(--line);padding:.5rem;text-align:left;vertical-align:top}
+.tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}.tabs button.on{background:var(--ink);color:var(--bg)}
+.banner{background:var(--amber);color:#1b1530;padding:.5rem 5vw;font-weight:600}
+.build{min-height:80vh;display:grid;place-content:center;text-align:center;padding:2rem;gap:1rem}
+.build h1{font-size:clamp(3rem,12vw,8rem);margin:0;color:var(--violet)}
+.stripe{height:14px;background:repeating-linear-gradient(135deg,var(--amber) 0 18px,var(--ink) 18px 36px)}
+:focus-visible{outline:3px solid var(--amber);outline-offset:2px}[role=alert]{color:#c0392b}

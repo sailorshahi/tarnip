@@ -1,0 +1,42 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin | TARNIP</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script></head><body>
+<header><a class="logo" href="./">TARNIP admin</a><a href="./">View site</a><button class="alt" id="out" hidden>Sign out</button></header><main id="m"></main>
+<script src="config.js"></script><script src="shared.js"></script>
+<script>
+let tab = "site", cats = [];
+const tabs = () => `<div class="tabs">${["site", "categories", "products", "orders"].map(t => `<button class="${t === tab ? "on" : ""}" onclick="tab='${t}';draw()">${t[0].toUpperCase() + t.slice(1)}</button>`).join("")}</div>`;
+const fd = f => Object.fromEntries(new FormData(f));
+async function draw() {
+  const m = $("#m"); cats = (await sb.from("categories").select("*").order("sort")).data || [];
+  let h = tabs();
+  if (tab === "site") {
+    const s = await settings();
+    h += `<h2>Site status</h2><p>Now: <b>${s.mode === "live" ? "Published" : "Under construction"}</b>. Admins always see the full site.</p><form id="f"><label>Mode<select name="mode"><option value="construction" ${s.mode !== "live" ? "selected" : ""}>Under construction</option><option value="live" ${s.mode === "live" ? "selected" : ""}>Published</option></select></label><label>Under-construction message<textarea name="message">${esc(s.message)}</textarea></label><button>Save changes</button></form>`;
+    m.innerHTML = h; $("#f").onsubmit = async e => { e.preventDefault(); const v = fd(e.target); await sb.from("site_settings").upsert(Object.entries(v).map(([key, value]) => ({ key, value }))); draw(); };
+  } else if (tab === "categories") {
+    h += `<h2>Categories</h2><table>${cats.map(c => `<tr><td>${esc(c.name)}</td><td>${c.kind}</td><td>${c.slug}</td><td><button class="alt" onclick="del('categories',${c.id})">Delete</button></td></tr>`).join("")}</table><h3>Add category</h3><form id="f"><label>Name<input name="name" required></label><label>Slug<input name="slug" required pattern="[a-z0-9-]+"></label><label>Type<select name="kind"><option>hardware</option><option>software</option></select></label><button>Add category</button></form>`;
+    m.innerHTML = h; $("#f").onsubmit = async e => { e.preventDefault(); const r = await sb.from("categories").insert(fd(e.target)); r.error ? alert(r.error.message) : draw(); };
+  } else if (tab === "products") {
+    const ps = (await sb.from("products").select("*").order("id")).data || [];
+    h += `<h2>Products</h2><table>${ps.map(p => `<tr><td>${esc(p.name)}</td><td>${p.kind}</td><td>${p.active ? "Shown" : "Hidden"}</td><td><button class="alt" onclick="edit(${p.id})">Edit</button> <button class="alt" onclick="del('products',${p.id})">Delete</button></td></tr>`).join("")}</table><h3 id="pt">Add product</h3><form id="f"><input type="hidden" name="id"><label>Name<input name="name" required></label><label>Slug<input name="slug" required pattern="[a-z0-9-]+"></label><label>Category<select name="category_id">${cats.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join("")}</select></label><label>Type<select name="kind"><option>hardware</option><option>software</option></select></label><label>Summary<input name="summary"></label><label>Price (₹)<input name="price" type="number" step="0.01" value="0"></label><label>Software access URL (for customers)<input name="access_url" type="url"></label><label>Product page content (HTML)<textarea name="page_html" rows="6"></textarea></label><label><input type="checkbox" name="active" checked style="width:auto"> Show in shop</label><button>Save product</button></form>`;
+    m.innerHTML = h; window.PS = ps;
+    $("#f").onsubmit = async e => { e.preventDefault(); const v = fd(e.target); v.active = !!v.active; const id = v.id; delete v.id; v.price = +v.price; v.category_id = +v.category_id; if (!v.access_url) v.access_url = null;
+      const r = id ? await sb.from("products").update(v).eq("id", id) : await sb.from("products").insert(v); r.error ? alert(r.error.message) : draw(); };
+  } else {
+    const os = (await sb.from("orders").select("*,profiles:user_id(email),order_items(product_id)").order("id", { ascending: false })).data || [];
+    h += `<h2>Orders</h2><table>${os.map(o => `<tr><td>#${o.id}</td><td>${esc(o.profiles?.email)}</td><td>${money(o.total)}</td><td>${o.status}</td><td>${o.status === "pending" ? `<button onclick="approve(${o.id},'${o.user_id}')">Approve and grant access</button>` : ""}</td></tr>`).join("") || "<tr><td>No orders yet.</td></tr>"}</table>`;
+    m.innerHTML = h; window.OS = os;
+  }
+}
+function edit(id) { const p = PS.find(x => x.id === id), f = $("#f"); for (const k in p) if (f[k]) k === "active" ? f.active.checked = p.active : f[k].value = p[k] ?? ""; $("#pt").textContent = "Edit product"; f.scrollIntoView(); }
+async function del(t, id) { if (confirm("Delete this item?")) { const r = await sb.from(t).delete().eq("id", id); r.error ? alert(r.error.message) : draw(); } }
+async function approve(id, uid) {
+  const o = OS.find(x => x.id === id);
+  await sb.from("entitlements").upsert(o.order_items.map(i => ({ user_id: uid, product_id: i.product_id, order_id: id })), { onConflict: "user_id,product_id" });
+  await sb.from("orders").update({ status: "paid" }).eq("id", id); draw();
+}
+(async () => { const u = await me();
+  if (!u) return authBox($("#m"), () => location.reload());
+  if (!u.is_admin) return $("#m").innerHTML = "<h2>No admin access</h2><p>Your account is not an admin. See the README to grant access.</p>";
+  $("#out").hidden = false; $("#out").onclick = async () => { await sb.auth.signOut(); location.reload(); }; draw(); })();
+</script></body></html>

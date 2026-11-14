@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>My products | TARNIP</title><link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script></head><body>
+<header><a class="logo" href="./">TARNIP</a><a href="./">Shop</a><button class="alt" id="out" hidden>Sign out</button></header><main id="m"></main>
+<script src="config.js"></script><script src="shared.js"></script>
+<script>
+async function load() {
+  const u = await me(); if (!u) return authBox($("#m"), () => load());
+  $("#out").hidden = false; $("#out").onclick = async () => { await sb.auth.signOut(); load(); $("#out").hidden = true; };
+  const { data } = await sb.from("entitlements").select("id,products(name,summary,kind,slug,access_url)").eq("user_id", u.id);
+  $("#m").innerHTML = `<h1>My products</h1><div class="grid">${(data || []).map(e => `<div class="card"><small>${e.products.kind}</small><h3>${esc(e.products.name)}</h3><p>${esc(e.products.summary)}</p>${e.products.access_url ? `<a class="btn" href="${esc(e.products.access_url)}" target="_blank" rel="noopener">Open software</a>` : "<small>Access link will be added soon.</small>"}<a href="./?p=${esc(e.products.slug)}">Product page</a></div>`).join("") || "<p>No products yet. Once an order is approved, it shows up here.</p>"}</div>`;
+}
+load();
+</script></body></html>
